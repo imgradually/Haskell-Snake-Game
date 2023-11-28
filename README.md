@@ -13,6 +13,19 @@ This is our final project for UCSD FA23 CSE230
 ## Requirements
 - [ghc](https://www.haskell.org/ghcup/)
 - [brick](https://github.com/jtdaugherty/brick/tree/master)
+  - To clone and build locally:
+    ```
+    $ git clone https://github.com/jtdaugherty/brick.git
+    $ cd brick
+    $ cabal new-build
+    ```
+## Execution
+To run the executable enter the project’s directory and run it, by inputting the following commands:
+```
+cd Haskell-Snake-Game
+cabal run Haskell-Snake-Game
+```
+
 
 ### Project proposal
 In this project, We decided to reproduce the classic snake game, with the primary aim to create a two-player gaming experience within the confines of the command line interface.
