@@ -53,3 +53,5 @@ css/
 /stack.yaml.lock
 /img/*.png
 /img/*.png
+
+brick/

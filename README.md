@@ -10,6 +10,10 @@ This is our final project for UCSD FA23 CSE230
 |Brian Chen    |A59016113  |zychen5186     |
 |Jensen Chang  |A59024883  |ycchang99      |
 
+## Requirements
+- [ghc](https://www.haskell.org/ghcup/)
+- [brick](https://github.com/jtdaugherty/brick/tree/master)
+
 ### Project proposal
 In this project, We decided to reproduce the classic snake game, with the primary aim to create a two-player gaming experience within the confines of the command line interface.
 These are the game functionality we will include in our project
