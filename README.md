@@ -26,6 +26,13 @@ cd Haskell-Snake-Game
 cabal run Haskell-Snake-Game
 ```
 
+## Modification from example snake project by samtay
+ - mkVty: dependencies should include vty-crossplatform, need to add `import Graphics.Vty.CrossPlatform (mkVty)` in `UI.hs`
+ - `Next` and `continue` deprecated after [brick 1.0]: changes in `handleEvent`, should add `import Control.Monad.State.Class (modify)` in `UI.hs`
+ - AttrName: need `attrName` to convert String to AttrName, should add `import Brick.AttrMap (attrName)` in `UI.hs`
+ - Other minor changes: should add parantheses after `return` at around line 56 in `UI.hs`
+
+ - TO BE FIXED: No dead currently, i.e., the game will never stop unless you press `q`
 
 ### Project proposal
 In this project, We decided to reproduce the classic snake game, with the primary aim to create a two-player gaming experience within the confines of the command line interface.
