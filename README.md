@@ -27,7 +27,7 @@ cabal run Haskell-Snake-Game
 ```
 
 
-### Project proposal
+### Milestone 1: Proposal
 In this project, We decided to reproduce the classic snake game, with the primary aim to create a two-player gaming experience within the confines of the command line interface.
 These are the game functionality we will include in our project
 1. Starting Point:
@@ -38,9 +38,31 @@ The player can control the direction of the snake using arrow keys for P1 and WA
 The main goal is to guide the snake to eat the food, which causes the snake to grow longer and earns point with each consumed piece.
 4. Grid Boundaries:
 The snake moves within the boundaries of a defined grid. If it hits the edge of the grid, it dies.
-5. Eating and Growing:
+6. Eating and Growing:
 When the snake eats a piece of food, its length and speed increases. The goal is to eat as much food as possible without colliding.
-6. Game Over:
+7. Game Over:
 The player must avoid having the collision with itself, the components body, or the boundaries, if any of the above happens, it dies. When both players' snake dies, the game ends.
-7. Scorekeeping:
+8. Scorekeeping:
 Points are awarded for each piece of food eaten. The Player with the higher score at the end of the game wins.
+
+### Milestone 2: Updates
+
+#### Key components of our application
+- **Game State:** The **`Game`** type represents the state of the Snake game, including the snake's position, direction, score, etc.
+- **Rendering:** The **`drawUI`** function combines widgets to create the user interface, including the score display, game over message, and the grid with the snake and food.
+- **Input Handling:** The **`handleEvent`** function responds to various events, such as ticks (for game progression), arrow key presses (for snake movement), and other key presses (e.g., 'r' for restarting and 'q' for quitting).
+- **Initialization:** The **`initGame`** function initializes the game state, and the **`main`** function sets up the Brick application, event channel, and starts the main loop.
+- **Game Logic:** The game logic is encapsulated in the **`step`** and **`turn`** functions, which handle the progression of the game state based on ticks and user input.
+- **Brick App Definition:** The **`app`** definition configures the Brick application, specifying the drawing, event handling, cursor behavior, and attribute mapping.
+- **Attributes and Styles:** The **`theMap`** defines attribute mappings for different elements, such as the snake, food, and game over message. These attributes are used in rendering to style the elements.
+#### Challenges and Solutions
+
+- This is our first time program in Haskell with Brick library. Thus, we started with some online tutorial resources such as ***Introduction to Brick*** by Sam Tay
+
+- Some example code are outdated or deprecated so we need to make it compatible to current version.
+
+    - **`Next`** and **`continue`** deprecated after [brick 1.0] so we use **`modify`** instead
+
+#### Do we expect to meet our goals until the deadline?
+
+- Yes
