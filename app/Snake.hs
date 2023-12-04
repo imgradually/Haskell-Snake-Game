@@ -9,20 +9,27 @@ module Snake
   , Direction(..)
   , dead, food, score, snake
   , height, width
+  , pauseGame
   ) where
 
 import Control.Applicative ((<|>))
 import Control.Monad (guard)
-import Data.Maybe (fromMaybe)
+import Data.Maybe()
 
 import Control.Lens hiding ((<|), (|>), (:>), (:<))
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.State
 import Control.Monad.Extra (orM)
-import Data.Sequence (Seq(..), (<|))
+import Data.Sequence (Seq(..), (<|), (><))
 import qualified Data.Sequence as S
 import Linear.V2 (V2(..), _x, _y)
 import System.Random (Random(..), newStdGen)
+
+
+-- import Debug.Trace
+-- this is a method to print the value in terminal to debug 
+-- temp <- use snake
+-- trace (show "") $ return ()
 
 -- Types
 
@@ -31,6 +38,7 @@ data Game = Game
   , _dir    :: Direction    -- ^ direction
   , _food   :: Coord        -- ^ location of the food
   , _foods  :: Stream Coord -- ^ infinite list of random next food locations
+  , _walls  :: Wall         -- ^ wall as a sequence of points in V2
   , _dead   :: Bool         -- ^ game over flag
   , _paused :: Bool         -- ^ paused flag
   , _score  :: Int          -- ^ score
@@ -40,6 +48,8 @@ data Game = Game
 type Coord = V2 Int
 
 type Snake = Seq Coord
+
+type Wall  = Seq Coord
 
 data Stream a = a :| Stream a
   deriving (Show)
@@ -77,13 +87,19 @@ step s = flip execState s . runMaybeT $ do
 -- | Possibly die if next head position is in snake
 die :: MaybeT (State Game) ()
 die = do
-  MaybeT . fmap guard $ elem <$> (nextHead <$> get) <*> (use snake)
+  MaybeT . fmap guard $ do
+    snakeCrash <- elem <$> (nextHead <$> get) <*> use snake
+    wallCrash  <- checkNextHeadOOB <$> get
+    return (snakeCrash || wallCrash)
+    -- cond2 <- elem <$> (nextHead <$> get) <*> use walls
+    -- return (cond1 || cond2)
+  -- MaybeT . fmap guard $ elem <$> (nextHead <$> get) <*> use walls
   MaybeT . fmap Just $ dead .= True
 
 -- | Possibly eat food if next head position is food
 eatFood :: MaybeT (State Game) ()
 eatFood = do
-  MaybeT . fmap guard $ (==) <$> (nextHead <$> get) <*> (use food)
+  MaybeT . fmap guard $ (==) <$> (nextHead <$> get) <*> use food
   MaybeT . fmap Just $ do
     modifying score (+ 10)
     get >>= \g -> modifying snake (nextHead g <|)
@@ -94,14 +110,21 @@ nextFood :: State Game ()
 nextFood = do
   (f :| fs) <- use foods
   foods .= fs
-  elem f <$> use snake >>= \case
-    True -> nextFood
-    False -> food .= f
+  use snake
+    >>=
+      (\case
+        True -> nextFood
+        False -> food .= f)
+        . elem f
 
 -- | Move snake along in a marquee fashion
 move :: Game -> Game
 move g@Game { _snake = (s :|> _) } = g & snake .~ (nextHead g <| s)
 move _                             = error "Snakes can't be empty!"
+
+-- | Pause the game
+pauseGame :: Game -> Game
+pauseGame g = g & paused .~ True
 
 -- | Get next head position of the snake
 nextHead :: Game -> Coord
@@ -111,6 +134,15 @@ nextHead Game { _dir = d, _snake = (a :<| _) }
   | d == East  = a & _x %~ (\x -> (x + 1) `mod` width)
   | d == West  = a & _x %~ (\x -> (x - 1) `mod` width)
 nextHead _ = error "Snakes can't be empty!"
+
+-- | Check if next position moves out of bound
+checkNextHeadOOB :: Game -> Bool
+checkNextHeadOOB Game { _dir = d, _snake = ((V2 x y) :<| _) }
+  | d == North = y == height-1
+  | d == South = y == 0  
+  | d == East  = x == width-1
+  | d == West  = x == 0
+checkNextHeadOOB _ = error "Snakes can't be empty!"
 
 -- | Turn game direction (only turns orthogonally)
 --
@@ -133,9 +165,10 @@ initGame = do
   let xm = width `div` 2
       ym = height `div` 2
       g  = Game
-        { _snake  = (S.singleton (V2 xm ym))
+        { _snake  = S.singleton (V2 xm ym)
         , _food   = f
         , _foods  = fs
+        , _walls  = makeWall -- I made this wall sequence just in case it would be used, could delete in the future
         , _score  = 0
         , _dir    = North
         , _dead   = False
@@ -146,3 +179,13 @@ initGame = do
 
 fromList :: [a] -> Stream a
 fromList = foldr (:|) (error "Streams must be infinite")
+
+makeWall :: Wall
+makeWall = 
+  S.fromList [V2 x 0 | x <- [0..width-1]] ><
+  S.fromList [V2 0 y | y <- [0..height-1]] ><
+  S.fromList [V2 x height-1 | x <- [1..width-2]] ><
+  S.fromList [V2 (width-1) y | y <- [1..height-2]]
+    
+
+

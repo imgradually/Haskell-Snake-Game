@@ -5,7 +5,7 @@ import Control.Monad (forever, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.State.Class (modify)
 import Control.Concurrent (threadDelay, forkIO)
-import Data.Maybe (fromMaybe)
+import Data.Maybe()
 
 import Snake
 
@@ -13,8 +13,8 @@ import Brick
   ( App(..), AttrMap, BrickEvent(..), EventM, Widget
   , customMain, neverShowCursor
   , halt
-  , hLimit, vLimit, vBox, hBox
-  , padRight, padLeft, padTop, padAll, Padding(..)
+  , hLimit, vBox, hBox
+  , padRight, padTop, padAll, Padding(..)
   , withBorderStyle
   , str
   , attrMap, withAttr, emptyWidget, AttrName, on, fg
@@ -28,8 +28,7 @@ import qualified Brick.Widgets.Center as C
 import Control.Lens ((^.))
 import qualified Graphics.Vty as V
 import Graphics.Vty.CrossPlatform (mkVty)
-import Data.Sequence (Seq)
-import qualified Data.Sequence as S
+import qualified Data.Sequence()
 import Linear.V2 (V2(..))
 
 -- Types
@@ -56,11 +55,19 @@ app = App { appDraw = drawUI
           , appStartEvent = return ()
           , appAttrMap = const theMap
           }
+-- >>> [x | x <- [1..10], even x]
+-- <interactive>:8655:2-27: warning: [-Wtype-defaults]
+--     • Defaulting the following constraints to type ‘Integer’
+--         (Show a0) arising from a use of ‘print’ at <interactive>:8655:2-27
+--         (Integral a0) arising from a use of ‘it’ at <interactive>:8655:2-27
+--     • In a stmt of an interactive GHCi command: print it
+-- [2,4,6,8,10]
+--
 
 main :: IO ()
 main = do
   chan <- newBChan 10
-  forkIO $ forever $ do
+  _ <- forkIO $ forever $ do
     writeBChan chan Tick
     threadDelay 100000 -- decides how fast your game moves
   g <- initGame
@@ -76,13 +83,14 @@ handleEvent (VtyEvent (V.EvKey V.KUp []))         = modify $ turn North
 handleEvent (VtyEvent (V.EvKey V.KDown []))       = modify $ turn South
 handleEvent (VtyEvent (V.EvKey V.KRight []))      = modify $ turn East 
 handleEvent (VtyEvent (V.EvKey V.KLeft []))       = modify $ turn West 
-handleEvent (VtyEvent (V.EvKey (V.KChar 'k') [])) = modify $ turn North
-handleEvent (VtyEvent (V.EvKey (V.KChar 'j') [])) = modify $ turn South
-handleEvent (VtyEvent (V.EvKey (V.KChar 'l') [])) = modify $ turn East 
-handleEvent (VtyEvent (V.EvKey (V.KChar 'h') [])) = modify $ turn West 
-handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {liftIO (initGame); return ()}
+handleEvent (VtyEvent (V.EvKey (V.KChar 'w') [])) = modify $ turn North
+handleEvent (VtyEvent (V.EvKey (V.KChar 's') [])) = modify $ turn South
+handleEvent (VtyEvent (V.EvKey (V.KChar 'd') [])) = modify $ turn East 
+handleEvent (VtyEvent (V.EvKey (V.KChar 'a') [])) = modify $ turn West 
+handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {_ <- liftIO initGame; return ()}
 handleEvent (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt
 handleEvent (VtyEvent (V.EvKey V.KEsc []))        = halt
+handleEvent (VtyEvent (V.EvKey (V.KChar 'p') [])) = modify pauseGame
 handleEvent _                                     = return ()
 
 -- Drawing
@@ -98,15 +106,15 @@ drawStats g = hLimit 11
          ]
 
 drawScore :: Int -> Widget Name
-drawScore n = withBorderStyle BS.unicodeBold
+drawScore n = withBorderStyle BS.unicodeRounded
   $ B.borderWithLabel (str "Score")
   $ C.hCenter
   $ padAll 1
   $ str $ show n
 
 drawGameOver :: Bool -> Widget Name
-drawGameOver dead =
-  if dead
+drawGameOver isDead =
+  if isDead
      then withAttr gameOverAttr $ C.hCenter $ str "GAME OVER"
      else emptyWidget
 
@@ -145,3 +153,4 @@ snakeAttr, foodAttr, emptyAttr :: AttrName
 snakeAttr = attrName "snakeAttr"
 foodAttr  = attrName "foodAttr"
 emptyAttr = attrName "emptyAttr"
+
