@@ -1,4 +1,6 @@
 module Main where
 
+import UI
+
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = UI.main
