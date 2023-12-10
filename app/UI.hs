@@ -3,7 +3,7 @@ module UI where
 
 import Control.Monad (forever, void)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.State.Class (modify)
+import Control.Monad.State.Class (modify, put)
 import Control.Concurrent (threadDelay, forkIO)
 import Data.Maybe()
 
