@@ -44,7 +44,7 @@ data Tick = Tick
 -- if we call this "Name" now.
 type Name = ()
 
-data Cell = Snake | Food | Empty
+data Cell = Snake1 | Snake2 | Food | Empty
 
 -- App definition
 
@@ -79,14 +79,14 @@ main = do
 
 handleEvent :: BrickEvent Name Tick -> EventM Name Game ()
 handleEvent (AppEvent Tick)                       = modify step
-handleEvent (VtyEvent (V.EvKey V.KUp []))         = modify $ turn North
-handleEvent (VtyEvent (V.EvKey V.KDown []))       = modify $ turn South
-handleEvent (VtyEvent (V.EvKey V.KRight []))      = modify $ turn East 
-handleEvent (VtyEvent (V.EvKey V.KLeft []))       = modify $ turn West 
-handleEvent (VtyEvent (V.EvKey (V.KChar 'w') [])) = modify $ turn North
-handleEvent (VtyEvent (V.EvKey (V.KChar 's') [])) = modify $ turn South
-handleEvent (VtyEvent (V.EvKey (V.KChar 'd') [])) = modify $ turn East 
-handleEvent (VtyEvent (V.EvKey (V.KChar 'a') [])) = modify $ turn West 
+handleEvent (VtyEvent (V.EvKey V.KUp []))         = modify $ turn1 North
+handleEvent (VtyEvent (V.EvKey V.KDown []))       = modify $ turn1 South
+handleEvent (VtyEvent (V.EvKey V.KRight []))      = modify $ turn1 East 
+handleEvent (VtyEvent (V.EvKey V.KLeft []))       = modify $ turn1 West 
+handleEvent (VtyEvent (V.EvKey (V.KChar 'w') [])) = modify $ turn2 North
+handleEvent (VtyEvent (V.EvKey (V.KChar 's') [])) = modify $ turn2 South
+handleEvent (VtyEvent (V.EvKey (V.KChar 'd') [])) = modify $ turn2 East 
+handleEvent (VtyEvent (V.EvKey (V.KChar 'a') [])) = modify $ turn2 West 
 handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {_ <- liftIO initGame; return ()}
 handleEvent (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt
 handleEvent (VtyEvent (V.EvKey V.KEsc []))        = halt
@@ -101,7 +101,7 @@ drawUI g =
 
 drawStats :: Game -> Widget Name
 drawStats g = hLimit 11
-  $ vBox [ drawScore (g ^. score)
+  $ vBox [ drawScore (g ^. score1)
          , padTop (Pad 2) $ drawGameOver (g ^. dead)
          ]
 
@@ -127,12 +127,14 @@ drawGrid g = withBorderStyle BS.unicodeBold
     cellsInRow y = [drawCoord (V2 x y) | x <- [0..width-1]]
     drawCoord    = drawCell . cellAt
     cellAt c
-      | c `elem` g ^. snake = Snake
+      | c `elem` g ^. snake1 = Snake1
+      | c `elem` g ^. snake2 = Snake2
       | c == g ^. food      = Food
       | otherwise           = Empty
 
 drawCell :: Cell -> Widget Name
-drawCell Snake = withAttr snakeAttr cw
+drawCell Snake1 = withAttr snakeAttr1 cw
+drawCell Snake2 = withAttr snakeAttr2 cw
 drawCell Food  = withAttr foodAttr cw
 drawCell Empty = withAttr emptyAttr cw
 
@@ -141,7 +143,8 @@ cw = str "  "
 
 theMap :: AttrMap
 theMap = attrMap V.defAttr
-  [ (snakeAttr, V.blue `on` V.blue)
+  [ (snakeAttr1, V.blue `on` V.blue)
+  , (snakeAttr2, V.green `on` V.green)
   , (foodAttr, V.red `on` V.red)
   , (gameOverAttr, fg V.red `V.withStyle` V.bold)
   ]
@@ -149,8 +152,9 @@ theMap = attrMap V.defAttr
 gameOverAttr :: AttrName
 gameOverAttr = attrName "gameOver"
 
-snakeAttr, foodAttr, emptyAttr :: AttrName
-snakeAttr = attrName "snakeAttr"
+snakeAttr1, snakeAttr2, foodAttr, emptyAttr :: AttrName
+snakeAttr1 = attrName "snakeAttr1"
+snakeAttr2 = attrName "snakeAttr2"
 foodAttr  = attrName "foodAttr"
 emptyAttr = attrName "emptyAttr"
 
