@@ -91,8 +91,18 @@ step s = flip execState s . runMaybeT $ do
 die :: MaybeT (State Game) ()
 die = do
   MaybeT . fmap guard $ do
-    snakeCrash1 <- elem <$> (nextHead1 <$> get) <*> use snake1
-    snakeCrash2 <- elem <$> (nextHead2 <$> get) <*> use snake2
+    snakeCrash1 <- get
+      >>=
+        (\ headValue
+          -> (||) <$> (elem headValue <$> use snake1)
+                <*> (elem headValue <$> use snake2))
+          . nextHead1
+    snakeCrash2 <- get
+      >>=
+        (\ headValue
+          -> (||) <$> (elem headValue <$> use snake1)
+                <*> (elem headValue <$> use snake2))
+          . nextHead2
     wallCrash1  <- checkNextHeadOOB1 <$> get
     wallCrash2  <- checkNextHeadOOB2 <$> get
     return (snakeCrash1 || snakeCrash2|| wallCrash1 || wallCrash2)
@@ -111,7 +121,7 @@ eatFood2 :: MaybeT (State Game) ()
 eatFood2 = do
   MaybeT . fmap guard $ (==) <$> (nextHead2 <$> get) <*> use food
   MaybeT . fmap Just $ do
-    score1 %= (+ 10)
+    score2 %= (+ 10)
     get >>= \g -> snake2 %= (nextHead2 g <|)
     nextFood
 
