@@ -91,6 +91,8 @@ handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {g <- liftIO initGame; pu
 handleEvent (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt
 handleEvent (VtyEvent (V.EvKey V.KEsc []))        = halt
 handleEvent (VtyEvent (V.EvKey (V.KChar 'p') [])) = modify pauseGame
+handleEvent (VtyEvent (V.EvKey (V.KChar '1') [])) = modify $ applyDeadEffect 1
+handleEvent (VtyEvent (V.EvKey (V.KChar '2') [])) = modify $ applyDeadEffect 2
 handleEvent _                                     = return ()
 
 -- Drawing
@@ -113,9 +115,9 @@ drawScore n = withBorderStyle BS.unicodeRounded
   $ str $ show n
 
 drawGameOver :: Bool -> String -> Widget Name
-drawGameOver isDead winner =
+drawGameOver isDead winnerStr =
   if isDead
-     then withAttr gameOverAttr $ C.hCenter $ str $ "GAME OVER\n" ++ winner
+     then withAttr gameOverAttr $ C.hCenter $ str $ "GAME OVER\n" ++ winnerStr
      else emptyWidget
 
 drawGrid :: Game -> Widget Name
@@ -127,11 +129,11 @@ drawGrid g = withBorderStyle BS.unicodeBold
     cellsInRow y = [drawCoord (V2 x y) | x <- [0..width-1]]
     drawCoord    = drawCell . cellAt
     cellAt c
-      | c `elem` g ^. snake1 = Snake1
-      | c `elem` g ^. snake2 = Snake2
-      | c == g ^. food       = Food
-      | c == g ^. freezer    = Freezer
-      | otherwise            = Empty
+      | c `elem` g ^. snake1 && False == g ^. dead1 = Snake1
+      | c `elem` g ^. snake2 && False == g ^. dead2 = Snake2
+      | c == g ^. food                            = Food
+      | c == g ^. freezer                         = Freezer
+      | otherwise                                 = Empty
 
 drawCell :: Cell -> Widget Name
 drawCell Snake1 = withAttr snakeAttr1 cw
@@ -146,8 +148,8 @@ cw = str "  "
 theMap :: AttrMap
 theMap = attrMap V.defAttr
   [ (snakeAttr1, V.blue `on` V.blue)
-  , (snakeAttr2, V.green `on` V.green)
-  , (foodAttr, V.red `on` V.red)
+  , (snakeAttr2, V.red `on` V.red)
+  , (foodAttr, V.green `on` V.green)
   , (freezerAttr, V.yellow `on` V.yellow)
   , (gameOverAttr, fg V.red `V.withStyle` V.bold)
   ]
