@@ -76,9 +76,10 @@ makeLenses ''Game
 
 -- Constants
 
-height, width :: Int
+height, width, freezeTime :: Int
 height = 40
 width = 40
+freezeTime = 40
 
 -- Functions
 
@@ -99,11 +100,12 @@ step s = flip execState s . runMaybeT $ do
 -- | Possibly die if next head position is in snake
 die :: MaybeT (State Game) ()
 die = do
-  MaybeT $ guard . not <$> orM [use dead1, use dead2]
+  MaybeT $ guard . not <$> andM [use dead1, use dead2]
   die1 <|> die2
 
 die1 :: MaybeT (State Game) ()
 die1 = do
+  MaybeT $ guard . not <$> use dead1
   MaybeT . fmap guard $ do
     snakeCrash1 <- get
       >>=
@@ -114,12 +116,17 @@ die1 = do
     wallCrash1  <- checkNextHeadOOB1 <$> get
     return (snakeCrash1 ||  wallCrash1)
   
-  MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER red"
   MaybeT . fmap Just $ dead1 .= True
   MaybeT . fmap Just $ dead .= True
+  MaybeT . fmap Just $ freezer .= (V2 width height)
+  MaybeT . fmap Just $ snake1 .= S.singleton (V2 width height)
+  MaybeT . fmap Just $ winner .= "GAME OVER\nPRESS R\nTO RESTART"
+  MaybeT $ guard . not <$> use dead2
+  MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER red"
 
 die2 :: MaybeT (State Game) ()
 die2 = do
+  MaybeT $ guard . not <$> use dead2
   MaybeT . fmap guard $ do
     snakeCrash2 <- get
       >>=
@@ -130,13 +137,18 @@ die2 = do
     wallCrash2  <- checkNextHeadOOB2 <$> get
     return (snakeCrash2 ||  wallCrash2)
   
-  MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER blue"
   MaybeT . fmap Just $ dead2 .= True
   MaybeT . fmap Just $ dead .= True
+  MaybeT . fmap Just $ freezer .= (V2 width height)
+  MaybeT . fmap Just $ snake2 .= S.singleton (V2 width height)
+  MaybeT . fmap Just $ winner .= "GAME OVER\nPRESS R\nTO RESTART"
+  MaybeT $ guard . not <$> use dead1
+  MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER blue"
 
 -- | Possibly eat food if next head position is food
 eatFood1 :: MaybeT (State Game) ()
 eatFood1 = do
+  MaybeT $ guard . not <$> use dead1
   MaybeT . fmap guard $ (==) <$> (nextHead1 <$> get) <*> use food
   MaybeT . fmap Just $ do
     score1 %= (+ 10)
@@ -145,6 +157,7 @@ eatFood1 = do
 
 eatFood2 :: MaybeT (State Game) ()
 eatFood2 = do
+  MaybeT $ guard . not <$> use dead2
   MaybeT . fmap guard $ (==) <$> (nextHead2 <$> get) <*> use food
   MaybeT . fmap Just $ do
     score2 %= (+ 10)
@@ -154,16 +167,18 @@ eatFood2 = do
 -- | Possibly eat freezer if next head position is food
 eatFreezer1 :: MaybeT (State Game) ()
 eatFreezer1 = do
+  MaybeT $ guard . not <$> use dead1
   MaybeT . fmap guard $ (==) <$> (nextHead1 <$> get) <*> use freezer
   MaybeT . fmap Just $ do
-    freeze2 %= (+ 10)
+    freeze2 %= (+ freezeTime)
     nextFreezer
 
 eatFreezer2 :: MaybeT (State Game) ()
 eatFreezer2 = do
+  MaybeT $ guard . not <$> use dead2
   MaybeT . fmap guard $ (==) <$> (nextHead2 <$> get) <*> use freezer
   MaybeT . fmap Just $ do
-    freeze1 %= (+ 10)
+    freeze1 %= (+ freezeTime)
     nextFreezer
 
 -- | Set a valid next food coordinate
@@ -297,13 +312,13 @@ initGame p2 = do
         , _locked2 = False        
         , _dead2   = not p2
         , _food    = f
-        , _freezer = ff
+        , _freezer = if p2 then (V2 width height) else ff
         , _foods   = fs
         , _freeze1  = 0
         , _freeze2  = 0
         , _paused  = True
         , _dead    = False
-        , _winner  = "TIE GAME"
+        , _winner  = ""
         , _p2mode  = p2
         }
   return $ execState nextFoodAndFreezer g
