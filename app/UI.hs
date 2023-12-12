@@ -8,6 +8,7 @@ import Control.Concurrent (threadDelay, forkIO)
 import Data.Maybe()
 
 import Snake
+import Start (start)
 
 import Brick
   ( App(..), AttrMap, BrickEvent(..), EventM, Widget
@@ -66,6 +67,7 @@ app = App { appDraw = drawUI
 
 main :: IO ()
 main = do
+  _ <- start
   chan <- newBChan 10
   _ <- forkIO $ forever $ do
     writeBChan chan Tick
