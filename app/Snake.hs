@@ -7,7 +7,7 @@ module Snake
   , turn1, turn2
   , Game(..)
   , Direction(..)
-  , food, dead, winner, score1, score2, snake1, snake2, freezer, dead1, dead2
+  , food, dead, winner, score1, score2, snake1, snake2, freezer, dead1, dead2, p2mode
   , height, width
   , pauseGame
   , applyDeadEffect
@@ -55,6 +55,7 @@ data Game = Game
   , _dead    :: Bool         -- ^ game over flag
   , _paused  :: Bool         -- ^ paused flag
   , _winner  :: String          -- ^ 1 if winner is P1, 2 if winner is P2
+  , _p2mode  :: Bool         -- double player mode flag
   } deriving (Show)
 
 type Coord = V2 Int
@@ -276,8 +277,8 @@ turnDir n c | c `elem` [North, South] && n `elem` [East, West] = n
             | otherwise = c
 
 -- | Initialize a paused game with random food location
-initGame :: IO Game
-initGame = do
+initGame :: Bool -> IO Game
+initGame p2 = do
   (f :| (ff :| fs)) <-
     fromList . randomRs (V2 0 0, V2 (width - 1) (height - 1)) <$> newStdGen
   let x1 = width `div` 2
@@ -294,7 +295,7 @@ initGame = do
         , _score2  = 0
         , _dir2    = South
         , _locked2 = False        
-        , _dead2   = False
+        , _dead2   = not p2
         , _food    = f
         , _freezer = ff
         , _foods   = fs
@@ -303,6 +304,7 @@ initGame = do
         , _paused  = True
         , _dead    = False
         , _winner  = "TIE GAME"
+        , _p2mode  = p2
         }
   return $ execState nextFoodAndFreezer g
 

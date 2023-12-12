@@ -3,7 +3,7 @@ module UI where
 
 import Control.Monad (forever, void)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.State.Class (modify, put)
+import Control.Monad.State.Class (modify, put, get)
 import Control.Concurrent (threadDelay, forkIO)
 import Data.Maybe()
 
@@ -67,12 +67,12 @@ app = App { appDraw = drawUI
 
 main :: IO ()
 main = do
-  _ <- start
+  p2 <- start
   chan <- newBChan 10
   _ <- forkIO $ forever $ do
     writeBChan chan Tick
     threadDelay 100000 -- decides how fast your game moves
-  g <- initGame
+  g <- initGame p2
   let builder = mkVty V.defaultConfig
   initialVty <- builder
   void $ customMain initialVty builder (Just chan) app g
@@ -89,7 +89,7 @@ handleEvent (VtyEvent (V.EvKey (V.KChar 'w') [])) = modify $ turn2 North
 handleEvent (VtyEvent (V.EvKey (V.KChar 's') [])) = modify $ turn2 South
 handleEvent (VtyEvent (V.EvKey (V.KChar 'd') [])) = modify $ turn2 East 
 handleEvent (VtyEvent (V.EvKey (V.KChar 'a') [])) = modify $ turn2 West 
-handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {g <- liftIO initGame; put g; return ()}
+handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {g <- get; g' <- liftIO $ initGame $ g ^. p2mode; put g'; return ()}
 handleEvent (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt
 handleEvent (VtyEvent (V.EvKey V.KEsc []))        = halt
 handleEvent (VtyEvent (V.EvKey (V.KChar 'p') [])) = modify pauseGame
