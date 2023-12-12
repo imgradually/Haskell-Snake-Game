@@ -44,7 +44,7 @@ data Tick = Tick
 -- if we call this "Name" now.
 type Name = ()
 
-data Cell = Snake1 | Snake2 | Food | Empty
+data Cell = Snake1 | Snake2 | Food | Freezer | Empty
 
 -- App definition
 
@@ -129,14 +129,16 @@ drawGrid g = withBorderStyle BS.unicodeBold
     cellAt c
       | c `elem` g ^. snake1 = Snake1
       | c `elem` g ^. snake2 = Snake2
-      | c == g ^. food      = Food
-      | otherwise           = Empty
+      | c == g ^. food       = Food
+      | c == g ^. freezer    = Freezer
+      | otherwise            = Empty
 
 drawCell :: Cell -> Widget Name
 drawCell Snake1 = withAttr snakeAttr1 cw
 drawCell Snake2 = withAttr snakeAttr2 cw
-drawCell Food  = withAttr foodAttr cw
-drawCell Empty = withAttr emptyAttr cw
+drawCell Food   = withAttr foodAttr cw
+drawCell Freezer  = withAttr freezerAttr cw
+drawCell Empty  = withAttr emptyAttr cw
 
 cw :: Widget Name
 cw = str "  "
@@ -146,15 +148,17 @@ theMap = attrMap V.defAttr
   [ (snakeAttr1, V.blue `on` V.blue)
   , (snakeAttr2, V.green `on` V.green)
   , (foodAttr, V.red `on` V.red)
+  , (freezerAttr, V.yellow `on` V.yellow)
   , (gameOverAttr, fg V.red `V.withStyle` V.bold)
   ]
 
 gameOverAttr :: AttrName
 gameOverAttr = attrName "gameOver"
 
-snakeAttr1, snakeAttr2, foodAttr, emptyAttr :: AttrName
+snakeAttr1, snakeAttr2, foodAttr, emptyAttr, freezerAttr :: AttrName
 snakeAttr1 = attrName "snakeAttr1"
 snakeAttr2 = attrName "snakeAttr2"
 foodAttr  = attrName "foodAttr"
+freezerAttr = attrName "freezerAttr"
 emptyAttr = attrName "emptyAttr"
 

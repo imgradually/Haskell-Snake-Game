@@ -7,9 +7,10 @@ module Snake
   , turn1, turn2
   , Game(..)
   , Direction(..)
-  , food, dead, score1, score2, snake1, snake2
+  , food, dead, score1, score2, snake1, snake2, freezer
   , height, width
   , pauseGame
+  , applyFreezeEffect
   ) where
 
 import Control.Applicative ((<|>))
@@ -44,7 +45,10 @@ data Game = Game
   , _score2  :: Int          -- ^ score
   , _locked2 :: Bool         -- ^ lock to disallow duplicate turns between time steps
   , _food    :: Coord        -- ^ location of the food
+  , _freezer :: Coord        -- ^ location of the freezer
   , _foods   :: Stream Coord -- ^ infinite list of random next food locations
+  , _freeze1 :: Int          -- freeze duration for snake 1
+  , _freeze2 :: Int          -- freeze duration for snake 2
   , _dead    :: Bool         -- ^ game over flag
   , _paused  :: Bool         -- ^ paused flag
   } deriving (Show)
@@ -85,7 +89,7 @@ step s = flip execState s . runMaybeT $ do
   MaybeT . fmap Just $ locked2 .= False
 
   -- die (moved into boundary), eat (moved into food), or move (move into space)
-  die <|> eatFood1 <|> eatFood2 <|> MaybeT (Just <$> modify move)
+  die <|> eatFood1 <|> eatFood2 <|> eatFreezer1 <|> eatFreezer2 <|> MaybeT (Just <$> modify move)
 
 -- | Possibly die if next head position is in snake
 die :: MaybeT (State Game) ()
@@ -125,6 +129,21 @@ eatFood2 = do
     get >>= \g -> snake2 %= (nextHead2 g <|)
     nextFood
 
+-- | Possibly eat freezer if next head position is food
+eatFreezer1 :: MaybeT (State Game) ()
+eatFreezer1 = do
+  MaybeT . fmap guard $ (==) <$> (nextHead1 <$> get) <*> use freezer
+  MaybeT . fmap Just $ do
+    freeze2 %= (+ 10)
+    nextFreezer
+
+eatFreezer2 :: MaybeT (State Game) ()
+eatFreezer2 = do
+  MaybeT . fmap guard $ (==) <$> (nextHead2 <$> get) <*> use freezer
+  MaybeT . fmap Just $ do
+    freeze1 %= (+ 10)
+    nextFreezer
+
 -- | Set a valid next food coordinate
 nextFood :: State Game ()
 nextFood = do
@@ -133,16 +152,40 @@ nextFood = do
 
   isInS1 <- elem f <$> use snake1
   isInS2 <- elem f <$> use snake2
+  isInfreezer <- (==) f <$> use freezer
 
-  if isInS1 || isInS2
+  if isInS1 || isInS2 || isInfreezer
     then nextFood
     else food .= f
-        
+
+nextFreezer :: State Game ()
+nextFreezer = do
+  (f :| fs) <- use foods
+  foods .= fs
+
+  isInS1 <- elem f <$> use snake1
+  isInS2 <- elem f <$> use snake2
+  isInfood <- (==) f <$> use food
+
+  if isInS1 || isInS2 || isInfood
+    then nextFreezer
+    else freezer .= f
+
+nextFoodAndFreezer :: State Game ()
+nextFoodAndFreezer = do
+  nextFood
+  nextFreezer
 
 -- | Move snake along in a marquee fashion
 move :: Game -> Game
-move g@Game { _snake1 = (s1 :|> _), _snake2 = (s2 :|> _)  } =
-   g & snake1 .~ (nextHead1 g <| s1) & snake2 .~ (nextHead2 g <| s2)
+move g@Game { _snake1 = (s1 :|> _), _snake2 = (s2 :|> _), _freeze1 = f1, _freeze2 = f2 } =
+  if f1 > 0
+    then g & (freeze1 .~ f1 - 1) & (snake2 .~ (nextHead2 g <| s2))
+    else if f2 > 0
+      then g & (freeze2 .~ f2 - 1) & (snake1 .~ (nextHead1 g <| s1))
+    else g & snake1 .~ (nextHead1 g <| s1) & snake2 .~ (nextHead2 g <| s2)
+
+  --  g & snake1 .~ (nextHead1 g <| s1) & snake2 .~ (nextHead2 g <| s2)
 move _                             = error "Snakes can't be empty!"
 
 -- | Pause the game
@@ -203,7 +246,7 @@ turnDir n c | c `elem` [North, South] && n `elem` [East, West] = n
 -- | Initialize a paused game with random food location
 initGame :: IO Game
 initGame = do
-  (f :| fs) <-
+  (f :| (ff :| fs)) <-
     fromList . randomRs (V2 0 0, V2 (width - 1) (height - 1)) <$> newStdGen
   let x1 = width `div` 2
       y1 = height `div` 4 
@@ -219,16 +262,20 @@ initGame = do
         , _dir2    = South
         , _locked2 = False        
         , _food    = f
+        , _freezer = ff
         , _foods   = fs
+        , _freeze1  = 0
+        , _freeze2  = 0
         , _paused  = True
         , _dead    = False
         }
-  return $ execState nextFood g
+  return $ execState nextFoodAndFreezer g
 
 fromList :: [a] -> Stream a
 fromList = foldr (:|) (error "Streams must be infinite")
 
-
-    
+applyFreezeEffect :: Int -> Game -> Game
+applyFreezeEffect 1 g = g & freeze1 .~ 10
+applyFreezeEffect 2 g = g & freeze2 .~ 10
 
 
