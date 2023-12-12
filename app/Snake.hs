@@ -7,9 +7,10 @@ module Snake
   , turn1, turn2
   , Game(..)
   , Direction(..)
-  , food, dead, winner, score1, score2, snake1, snake2, freezer
+  , food, dead, winner, score1, score2, snake1, snake2, freezer, dead1, dead2
   , height, width
   , pauseGame
+  , applyDeadEffect
   -- , applyFreezeEffect
   ) where
 
@@ -21,7 +22,7 @@ import Control.Lens
     ( (&), (^.), use, (%=), (%~), (.=), (.~), makeLenses )
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.State
-import Control.Monad.Extra (orM)
+import Control.Monad.Extra (orM, andM)
 import Data.Sequence (Seq(..), (<|))
 import qualified Data.Sequence as S
 import Linear.V2 (V2(..), _x, _y)
@@ -40,10 +41,12 @@ data Game = Game
   , _dir1    :: Direction    -- ^ direction
   , _score1  :: Int          -- ^ score
   , _locked1 :: Bool         -- ^ lock to disallow duplicate turns between time steps
+  , _dead1   :: Bool         -- ^ snake 1 is dead
   , _snake2  :: Snake        -- ^ snake as a sequence of points in N2
   , _dir2    :: Direction    -- ^ direction
   , _score2  :: Int          -- ^ score
   , _locked2 :: Bool         -- ^ lock to disallow duplicate turns between time steps
+  , _dead2   :: Bool         -- ^ snake 2 is dead
   , _food    :: Coord        -- ^ location of the food
   , _freezer :: Coord        -- ^ location of the freezer
   , _foods   :: Stream Coord -- ^ infinite list of random next food locations
@@ -83,7 +86,7 @@ step :: Game -> Game
 step s = flip execState s . runMaybeT $ do
 
   -- Make sure the game isn't paused or over
-  MaybeT $ guard . not <$> orM [use paused, use dead]
+  MaybeT $ guard . not <$> orM [use paused, andM [use dead1, use dead2] ]
 
   -- Unlock from last directional turn
   MaybeT . fmap Just $ locked1 .= False
@@ -95,6 +98,11 @@ step s = flip execState s . runMaybeT $ do
 -- | Possibly die if next head position is in snake
 die :: MaybeT (State Game) ()
 die = do
+  MaybeT $ guard . not <$> orM [use dead1, use dead2]
+  die1 <|> die2
+
+die1 :: MaybeT (State Game) ()
+die1 = do
   MaybeT . fmap guard $ do
     snakeCrash1 <- get
       >>=
@@ -102,23 +110,27 @@ die = do
           -> (||) <$> (elem headValue <$> use snake1)
                 <*> (elem headValue <$> use snake2))
           . nextHead1
+    wallCrash1  <- checkNextHeadOOB1 <$> get
+    return (snakeCrash1 ||  wallCrash1)
+  
+  MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER red"
+  MaybeT . fmap Just $ dead1 .= True
+  MaybeT . fmap Just $ dead .= True
+
+die2 :: MaybeT (State Game) ()
+die2 = do
+  MaybeT . fmap guard $ do
     snakeCrash2 <- get
       >>=
         (\ headValue
           -> (||) <$> (elem headValue <$> use snake1)
                 <*> (elem headValue <$> use snake2))
           . nextHead2
-    wallCrash1  <- checkNextHeadOOB1 <$> get
     wallCrash2  <- checkNextHeadOOB2 <$> get
-    return (snakeCrash1 || snakeCrash2|| wallCrash1 || wallCrash2)
+    return (snakeCrash2 ||  wallCrash2)
   
-  s1 <- use score1
-  s2 <- use score2
-
-  if s1 >= s2
-    then MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER blue"
-    else MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER red"
-
+  MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER blue"
+  MaybeT . fmap Just $ dead2 .= True
   MaybeT . fmap Just $ dead .= True
 
 -- | Possibly eat food if next head position is food
@@ -187,15 +199,26 @@ nextFoodAndFreezer = do
 
 -- | Move snake along in a marquee fashion
 move :: Game -> Game
-move g@Game { _snake1 = (s1 :|> _), _snake2 = (s2 :|> _), _freeze1 = f1, _freeze2 = f2 } =
-  if f1 > 0
-    then g & (freeze1 .~ f1 - 1) & (snake2 .~ (nextHead2 g <| s2))
-    else if f2 > 0
-      then g & (freeze2 .~ f2 - 1) & (snake1 .~ (nextHead1 g <| s1))
-    else g & snake1 .~ (nextHead1 g <| s1) & snake2 .~ (nextHead2 g <| s2)
-
-  --  g & snake1 .~ (nextHead1 g <| s1) & snake2 .~ (nextHead2 g <| s2)
+move g = move1 $ move2 g
 move _                             = error "Snakes can't be empty!"
+
+move1 :: Game -> Game
+move1 g@Game { _snake1 = (s1 :|> _), _freeze1 = f1, _dead1 = d1} =
+  if d1
+    then g
+    else if f1 > 0
+      then g & (freeze1 .~ f1 - 1)
+      else g & (snake1 .~ (nextHead1 g <| s1))
+move1 _                            = error "Snakes can't be empty!"
+
+move2 :: Game -> Game
+move2 g@Game { _snake2 = (s2 :|> _), _freeze2 = f2, _dead2 = d2} =
+  if d2
+    then g
+    else if f2 > 0
+      then g & (freeze2 .~ f2 - 1)
+      else g & (snake2 .~ (nextHead2 g <| s2))
+move2 _                            = error "Snakes can't be empty!"
 
 -- | Pause the game
 pauseGame :: Game -> Game
@@ -266,10 +289,12 @@ initGame = do
         , _score1  = 0
         , _dir1    = North
         , _locked1 = False
+        , _dead1   = False
         , _snake2  = S.singleton (V2 x2 y2)
         , _score2  = 0
         , _dir2    = South
         , _locked2 = False        
+        , _dead2   = False
         , _food    = f
         , _freezer = ff
         , _foods   = fs
@@ -288,4 +313,7 @@ fromList = foldr (:|) (error "Streams must be infinite")
 -- applyFreezeEffect 1 g = g & freeze1 .~ 10
 -- applyFreezeEffect 2 g = g & freeze2 .~ 10
 
+applyDeadEffect :: Int -> Game -> Game
+applyDeadEffect 1 g = g & dead1 .~ True
+applyDeadEffect 2 g = g & dead2 .~ True
 
