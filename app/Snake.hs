@@ -10,7 +10,7 @@ module Snake
   , food, dead, winner, score1, score2, snake1, snake2, freezer
   , height, width
   , pauseGame
-  , applyFreezeEffect
+  -- , applyFreezeEffect
   ) where
 
 import Control.Applicative ((<|>))
@@ -51,7 +51,7 @@ data Game = Game
   , _freeze2 :: Int          -- freeze duration for snake 2
   , _dead    :: Bool         -- ^ game over flag
   , _paused  :: Bool         -- ^ paused flag
-  , _winner  :: Int          -- ^ 1 if winner is P1, 2 if winner is P2
+  , _winner  :: String          -- ^ 1 if winner is P1, 2 if winner is P2
   } deriving (Show)
 
 type Coord = V2 Int
@@ -116,8 +116,8 @@ die = do
   s2 <- use score2
 
   if s1 >= s2
-    then MaybeT . fmap Just $ winner .= 1
-    else MaybeT . fmap Just $ winner .= 2
+    then MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER blue"
+    else MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER red"
 
   MaybeT . fmap Just $ dead .= True
 
@@ -277,15 +277,15 @@ initGame = do
         , _freeze2  = 0
         , _paused  = True
         , _dead    = False
-        , _winner  = 0
+        , _winner  = "TIE GAME"
         }
   return $ execState nextFoodAndFreezer g
 
 fromList :: [a] -> Stream a
 fromList = foldr (:|) (error "Streams must be infinite")
 
-applyFreezeEffect :: Int -> Game -> Game
-applyFreezeEffect 1 g = g & freeze1 .~ 10
-applyFreezeEffect 2 g = g & freeze2 .~ 10
+-- applyFreezeEffect :: Int -> Game -> Game
+-- applyFreezeEffect 1 g = g & freeze1 .~ 10
+-- applyFreezeEffect 2 g = g & freeze2 .~ 10
 
 

@@ -112,10 +112,10 @@ drawScore n = withBorderStyle BS.unicodeRounded
   $ padAll 1
   $ str $ show n
 
-drawGameOver :: Bool -> Int -> Widget Name
-drawGameOver isDead winPlayer =
+drawGameOver :: Bool -> String -> Widget Name
+drawGameOver isDead winner =
   if isDead
-     then withAttr gameOverAttr $ C.hCenter $ str $ show winPlayer
+     then withAttr gameOverAttr $ C.hCenter $ str $ "GAME OVER\n" ++ winner
      else emptyWidget
 
 drawGrid :: Game -> Widget Name
