@@ -7,7 +7,7 @@ module Snake
   , turn1, turn2
   , Game(..)
   , Direction(..)
-  , food, dead, score1, score2, snake1, snake2
+  , food, dead, winner, score1, score2, snake1, snake2
   , height, width
   , pauseGame
   ) where
@@ -47,6 +47,7 @@ data Game = Game
   , _foods   :: Stream Coord -- ^ infinite list of random next food locations
   , _dead    :: Bool         -- ^ game over flag
   , _paused  :: Bool         -- ^ paused flag
+  , _winner  :: Int          -- ^ 1 if winner is P1, 2 if winner is P2
   } deriving (Show)
 
 type Coord = V2 Int
@@ -106,6 +107,14 @@ die = do
     wallCrash1  <- checkNextHeadOOB1 <$> get
     wallCrash2  <- checkNextHeadOOB2 <$> get
     return (snakeCrash1 || snakeCrash2|| wallCrash1 || wallCrash2)
+  
+  s1 <- use score1
+  s2 <- use score2
+
+  if s1 >= s2
+    then MaybeT . fmap Just $ winner .= 1
+    else MaybeT . fmap Just $ winner .= 2
+
   MaybeT . fmap Just $ dead .= True
 
 -- | Possibly eat food if next head position is food
@@ -222,6 +231,7 @@ initGame = do
         , _foods   = fs
         , _paused  = True
         , _dead    = False
+        , _winner  = 0
         }
   return $ execState nextFood g
 
