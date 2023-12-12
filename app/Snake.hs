@@ -147,7 +147,7 @@ move _                             = error "Snakes can't be empty!"
 
 -- | Pause the game
 pauseGame :: Game -> Game
-pauseGame g = g & paused .~ True
+pauseGame g = g & if g ^. paused then paused .~ False else paused .~ True
 
 -- | Get next head position of the snake
 nextHead1 :: Game -> Coord
