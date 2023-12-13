@@ -11,6 +11,7 @@ module Snake
   , height, width
   , pauseGame
   , applyReverseEffect
+  , isItemFirst
   ) where
 
 import Control.Applicative ((<|>))
@@ -116,12 +117,24 @@ die1 = do
     return (snakeCrash1 ||  wallCrash1)
   
   MaybeT . fmap Just $ dead1 .= True
-  MaybeT . fmap Just $ dead .= True
   MaybeT . fmap Just $ freezer .= (V2 width height)
   MaybeT . fmap Just $ snake1 .= S.singleton (V2 width height)
-  MaybeT . fmap Just $ winner .= "GAME OVER\nPRESS R\nTO RESTART"
-  MaybeT $ guard . not <$> use dead2
-  MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER red"
+  
+  mode <- use p2mode
+  if not mode
+    then do
+      MaybeT . fmap Just $ winner .= "GAME OVER"
+      MaybeT . fmap Just $ dead .= True
+    else do
+      MaybeT $ guard <$> use dead2
+      MaybeT . fmap Just $ dead .= True
+      s1 <- use score1
+      s2 <- use score2
+      if s1 > s2
+        then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER blue"
+        else if s2 > s1
+          then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER red"
+          else  MaybeT . fmap Just $ winner .= "GAME OVER\nDRAW"
 
 die2 :: MaybeT (State Game) ()
 die2 = do
@@ -140,9 +153,15 @@ die2 = do
   MaybeT . fmap Just $ dead .= True
   MaybeT . fmap Just $ freezer .= (V2 width height)
   MaybeT . fmap Just $ snake2 .= S.singleton (V2 width height)
-  MaybeT . fmap Just $ winner .= "GAME OVER\nPRESS R\nTO RESTART"
-  MaybeT $ guard . not <$> use dead1
-  MaybeT . fmap Just $ winner .= "WINNER is\nPLAYER blue"
+  MaybeT $ guard <$> use dead1
+  MaybeT . fmap Just $ dead .= True
+  s1 <- use score1
+  s2 <- use score2
+  if s1 > s2
+    then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER blue"
+    else if s2 > s1
+      then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER red"
+      else  MaybeT . fmap Just $ winner .= "GAME OVER\nDRAW"
 
 -- | Possibly eat food if next head position is food
 eatFood1 :: MaybeT (State Game) ()
@@ -357,3 +376,9 @@ reverseDirection d
 applyReverseEffect :: Int -> Game -> Game
 applyReverseEffect 1 g = g & snake1 %~ S.reverse & dir1 .~ (snakeDirection (reverseDirection $ g ^. dir1) (g ^. snake1))
 applyReverseEffect 2 g = g & snake2 %~ S.reverse & dir2 .~ (snakeDirection (reverseDirection $ g ^. dir2) (g ^. snake2))
+
+isItemFirst :: Eq a => a -> S.Seq a -> Bool
+isItemFirst item seq =
+  case S.viewl seq of
+    S.EmptyL    -> False
+    x S.:< _    -> x == item

@@ -144,12 +144,6 @@ drawGameOver isDead winnerStr =
      then withAttr gameOverAttr $ C.hCenter $ str $ winnerStr
      else emptyWidget
 
-isItemFirst :: Eq a => a -> S.Seq a -> Bool
-isItemFirst item seq =
-  case S.viewl seq of
-    S.EmptyL    -> False
-    x S.:< _    -> x == item
-
 drawGrid :: Game -> Widget Name
 drawGrid g = withBorderStyle BS.unicodeBold
   $ B.borderWithLabel (str "Snake")
