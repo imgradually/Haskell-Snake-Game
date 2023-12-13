@@ -8,7 +8,7 @@ import Control.Concurrent (threadDelay, forkIO)
 import Data.Maybe()
 
 import Snake
-import Start (start,appStartEvent)
+import Start (start)
 
 import Brick
   -- ( App(..), AttrMap, BrickEvent(..), EventM, Widget
@@ -98,7 +98,14 @@ handleEvent (VtyEvent (V.EvKey V.KEsc []))        = halt
 handleEvent (VtyEvent (V.EvKey (V.KChar 'p') [])) = modify pauseGame
 handleEvent (VtyEvent (V.EvKey (V.KChar '.') [])) = modify $ applyReverseEffect 1
 handleEvent (VtyEvent (V.EvKey (V.KChar 'g') [])) = modify $ applyReverseEffect 2
--- handleEvent (VtyEvent (V.EvKey (V.KChar 'b') [])) = 
+handleEvent (VtyEvent (V.EvKey (V.KChar 'P') [])) = modify pauseGame
+handleEvent (VtyEvent (V.EvKey (V.KChar 'G') [])) = modify $ applyReverseEffect 2
+handleEvent (VtyEvent (V.EvKey (V.KChar 'W') [])) = modify $ turn2 North
+handleEvent (VtyEvent (V.EvKey (V.KChar 'S') [])) = modify $ turn2 South
+handleEvent (VtyEvent (V.EvKey (V.KChar 'D') [])) = modify $ turn2 East 
+handleEvent (VtyEvent (V.EvKey (V.KChar 'A') [])) = modify $ turn2 West 
+handleEvent (VtyEvent (V.EvKey (V.KChar 'R') [])) = do {g <- get; g' <- liftIO $ initGame $ g ^. p2mode; put g'; return ()}
+handleEvent (VtyEvent (V.EvKey (V.KChar 'Q') [])) = halt
 handleEvent _                                     = return ()
 
 -- Drawing
@@ -106,19 +113,27 @@ handleEvent _                                     = return ()
 drawUI :: Game -> [Widget Name]
 drawUI g =
   if g ^. p2mode then
-    [ C.center $ padRight (Pad 2)  ((drawHelp g) <=> padLeft (Pad 7) (drawStats g)) <+> drawGrid g]
+    [ C.center $ padRight (Pad 2)  ((drawHelp g) <=> (drawTip g) <=> padLeft (Pad 7) (drawStats g)) <+> drawGrid g]
   else
-    [ C.center $ padRight (Pad 2)  ((drawHelp g) <=> padLeft (Pad 5) (drawStats g)) <+> drawGrid g]
+    [ C.center $ padRight (Pad 2)  ((drawHelp g) <=> (drawTip g) <=> padLeft (Pad 5) (drawStats g)) <+> drawGrid g]
 
 drawStats :: Game -> Widget Name
-drawStats g = hLimit 11
-  $ vBox [ drawScore (g ^. score1)
+drawStats g = if g ^. p2mode then 
+  hLimit 11
+  $ vBox [ drawScore (g ^. score1) "Score1"
+         , drawScore (g ^. score2) "Score2"
+         , padTop (Pad 2) $ drawGameOver (g ^. dead) (g ^. winner)
+         ]
+  else
+    hLimit 11
+  $ vBox [ drawScore (g ^. score1) "Score"
          , padTop (Pad 2) $ drawGameOver (g ^. dead) (g ^. winner)
          ]
 
-drawScore :: Int -> Widget Name
-drawScore n = withBorderStyle BS.unicodeRounded
-  $ B.borderWithLabel (str "Score")
+
+drawScore :: Int -> String -> Widget Name
+drawScore n s = withBorderStyle BS.unicodeRounded
+  $ B.borderWithLabel (str s)
   $ C.hCenter
   $ padAll 1
   $ str $ show n
@@ -145,8 +160,8 @@ drawGrid g = withBorderStyle BS.unicodeBold
       | otherwise                                                       = Empty
 
 drawCell :: Cell -> Widget Name
-drawCell Snake1 = withAttr snakeAttr1 cw
-drawCell Snake2 = withAttr snakeAttr2 cw
+drawCell Snake1 = withAttr snakeAttr1 cw1
+drawCell Snake2 = withAttr snakeAttr2 cw1
 drawCell Food   = withAttr foodAttr cw
 drawCell Freezer  = withAttr freezerAttr cw
 drawCell Empty  = withAttr emptyAttr cw
@@ -179,8 +194,35 @@ drawHelp g = if g ^. p2mode then
     & withBorderStyle unicodeBold
     & setAvailableSize (100, 50)
 
+drawTip :: Game -> Widget()
+drawTip g = if g ^. p2mode then
+      [ "RED DOT IS PLAYER 1"
+      , "BLUE DOT IS PLAYER 2"
+      , "YELLOW DOT IS FREEZER "
+      , "GREEN DOT IS FOOD"
+    ]
+    & unlines
+    & str
+    & borderWithLabel (str " Tip ")
+    & withBorderStyle unicodeBold
+    & setAvailableSize (100, 50)
+  else
+    [ " BLUE DOT IS PLAYER"
+    , " GREEN DOT IS FOOD"
+    ]
+    & unlines
+    & str
+    & borderWithLabel (str " Tip ")
+    & withBorderStyle unicodeBold
+    & setAvailableSize (100, 50)
+
+
+
 cw :: Widget Name
 cw = str "  "
+
+cw1 :: Widget Name
+cw1 = str "**"
 
 theMap :: AttrMap
 theMap = attrMap V.defAttr
