@@ -3,11 +3,12 @@ module UI where
 
 import Control.Monad (forever, void)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.State.Class (modify, put)
+import Control.Monad.State.Class (modify, put, get)
 import Control.Concurrent (threadDelay, forkIO)
 import Data.Maybe()
 
 import Snake
+import Start (start)
 
 import Brick
   -- ( App(..), AttrMap, BrickEvent(..), EventM, Widget
@@ -46,7 +47,7 @@ data Tick = Tick
 -- if we call this "Name" now.
 type Name = ()
 
-data Cell = Snake1 | Snake2 | Food | Empty
+data Cell = Snake1 | Snake2 | Food | Freezer | Empty
 
 -- App definition
 
@@ -68,11 +69,12 @@ app = App { appDraw = drawUI
 
 main :: IO ()
 main = do
+  p2 <- start
   chan <- newBChan 10
   _ <- forkIO $ forever $ do
     writeBChan chan Tick
     threadDelay 100000 -- decides how fast your game moves
-  g <- initGame
+  g <- initGame p2
   let builder = mkVty V.defaultConfig
   initialVty <- builder
   void $ customMain initialVty builder (Just chan) app g
@@ -89,7 +91,7 @@ handleEvent (VtyEvent (V.EvKey (V.KChar 'w') [])) = modify $ turn2 North
 handleEvent (VtyEvent (V.EvKey (V.KChar 's') [])) = modify $ turn2 South
 handleEvent (VtyEvent (V.EvKey (V.KChar 'd') [])) = modify $ turn2 East 
 handleEvent (VtyEvent (V.EvKey (V.KChar 'a') [])) = modify $ turn2 West 
-handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {g <- liftIO initGame; put g; return ()}
+handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {g <- get; g' <- liftIO $ initGame $ g ^. p2mode; put g'; return ()}
 handleEvent (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt
 handleEvent (VtyEvent (V.EvKey V.KEsc []))        = halt
 handleEvent (VtyEvent (V.EvKey (V.KChar 'p') [])) = modify pauseGame
@@ -114,10 +116,10 @@ drawScore n = withBorderStyle BS.unicodeRounded
   $ padAll 1
   $ str $ show n
 
-drawGameOver :: Bool -> Int -> Widget Name
-drawGameOver isDead winPlayer =
+drawGameOver :: Bool -> String -> Widget Name
+drawGameOver isDead winnerStr =
   if isDead
-     then withAttr gameOverAttr $ C.hCenter $ str $ show winPlayer
+     then withAttr gameOverAttr $ C.hCenter $ str $ winnerStr
      else emptyWidget
 
 drawGrid :: Game -> Widget Name
@@ -129,16 +131,18 @@ drawGrid g = withBorderStyle BS.unicodeBold
     cellsInRow y = [drawCoord (V2 x y) | x <- [0..width-1]]
     drawCoord    = drawCell . cellAt
     cellAt c
-      | c `elem` g ^. snake1 = Snake1
-      | c `elem` g ^. snake2 = Snake2
-      | c == g ^. food      = Food
-      | otherwise           = Empty
+      | c `elem` g ^. snake1 && False == g ^. dead1                     = Snake1
+      | c `elem` g ^. snake2 && False == g ^. dead2                     = Snake2
+      | c == g ^. food                                                  = Food
+      | c == g ^. freezer && False == g ^. dead1 && False == g ^. dead2 = Freezer
+      | otherwise                                                       = Empty
 
 drawCell :: Cell -> Widget Name
 drawCell Snake1 = withAttr snakeAttr1 cw
 drawCell Snake2 = withAttr snakeAttr2 cw
-drawCell Food  = withAttr foodAttr cw
-drawCell Empty = withAttr emptyAttr cw
+drawCell Food   = withAttr foodAttr cw
+drawCell Freezer  = withAttr freezerAttr cw
+drawCell Empty  = withAttr emptyAttr cw
 
 drawHelp :: Widget()
 drawHelp =
@@ -160,17 +164,19 @@ cw = str "  "
 theMap :: AttrMap
 theMap = attrMap V.defAttr
   [ (snakeAttr1, V.blue `on` V.blue)
-  , (snakeAttr2, V.green `on` V.green)
-  , (foodAttr, V.red `on` V.red)
+  , (snakeAttr2, V.red `on` V.red)
+  , (foodAttr, V.green `on` V.green)
+  , (freezerAttr, V.yellow `on` V.yellow)
   , (gameOverAttr, fg V.red `V.withStyle` V.bold)
   ]
 
 gameOverAttr :: AttrName
 gameOverAttr = attrName "gameOver"
 
-snakeAttr1, snakeAttr2, foodAttr, emptyAttr :: AttrName
+snakeAttr1, snakeAttr2, foodAttr, emptyAttr, freezerAttr :: AttrName
 snakeAttr1 = attrName "snakeAttr1"
 snakeAttr2 = attrName "snakeAttr2"
 foodAttr  = attrName "foodAttr"
+freezerAttr = attrName "freezerAttr"
 emptyAttr = attrName "emptyAttr"
 

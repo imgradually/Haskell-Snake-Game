@@ -31,6 +31,7 @@ executable Haskell-Snake-Game
     hs-source-dirs:   app
     other-modules:    Snake
                     , UI
+                    , Start
     ghc-options:      -threaded -Wall -Wcompat -O2
     default-language: Haskell2010
     main-is:          Main.hs
