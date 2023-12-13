@@ -79,7 +79,7 @@ makeLenses ''Game
 height, width, freezeTime :: Int
 height = 40
 width = 40
-freezeTime = 40
+freezeTime = 20
 
 -- Functions
 
