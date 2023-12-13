@@ -32,7 +32,7 @@ import qualified Brick.Widgets.Center as C
 import Control.Lens ((^.),(&))
 import qualified Graphics.Vty as V
 import Graphics.Vty.CrossPlatform (mkVty)
-import qualified Data.Sequence()
+import qualified Data.Sequence as S
 import Linear.V2 (V2(..))
 
 -- Types
@@ -48,7 +48,7 @@ data Tick = Tick
 -- if we call this "Name" now.
 type Name = ()
 
-data Cell = Snake1 | Snake2 | Food | Freezer | Empty
+data Cell = Snake1 | Snake2 | Food | Freezer | Empty | SnakeHead1 | SnakeHead2
 
 -- App definition
 
@@ -144,6 +144,12 @@ drawGameOver isDead winnerStr =
      then withAttr gameOverAttr $ C.hCenter $ str $ winnerStr
      else emptyWidget
 
+isItemFirst :: Eq a => a -> S.Seq a -> Bool
+isItemFirst item seq =
+  case S.viewl seq of
+    S.EmptyL    -> False
+    x S.:< _    -> x == item
+
 drawGrid :: Game -> Widget Name
 drawGrid g = withBorderStyle BS.unicodeBold
   $ B.borderWithLabel (str "Snake")
@@ -153,19 +159,14 @@ drawGrid g = withBorderStyle BS.unicodeBold
     cellsInRow y = [drawCoord (V2 x y) | x <- [0..width-1]]
     drawCoord    = drawCell . cellAt
     cellAt c
-      | c `elem` g ^. snake1 && False == g ^. dead1                     = Snake1
-      | c `elem` g ^. snake2 && False == g ^. dead2                     = Snake2
-      | c == g ^. food                                                  = Food
-      | c == g ^. freezer && False == g ^. dead1 && False == g ^. dead2 = Freezer
-      | otherwise                                                       = Empty
+      | c `elem` g ^. snake1 && False == g ^. dead1 && isItemFirst c (g ^. snake1) = SnakeHead1
+      | c `elem` g ^. snake1 && False == g ^. dead1                                = Snake1
+      | c `elem` g ^. snake1 && False == g ^. dead1 && isItemFirst c (g ^. snake2) = SnakeHead2
+      | c `elem` g ^. snake1 && False == g ^. dead1                                = Snake2
+      | c == g ^. food                                                             = Food
+      | c == g ^. freezer && False == g ^. dead1 && False == g ^. dead2            = Freezer
+      | otherwise                                                                  = Empty
 
-drawCell :: Cell -> Widget Name
-drawCell Snake1 = withAttr snakeAttr1 cw1
-drawCell Snake2 = withAttr snakeAttr2 cw1
-drawCell Food   = withAttr foodAttr cw
-drawCell Freezer  = withAttr freezerAttr cw
-drawCell Empty  = withAttr emptyAttr cw
- 
 drawHelp :: Game -> Widget()
 drawHelp g = if g ^. p2mode then
     [ "Player1 Move    : ↑←↓→"
@@ -216,7 +217,14 @@ drawTip g = if g ^. p2mode then
     & withBorderStyle unicodeBold
     & setAvailableSize (100, 50)
 
-
+drawCell :: Cell -> Widget Name
+drawCell SnakeHead1 = withAttr snakeAttr1 cw1
+drawCell SnakeHead2 = withAttr snakeAttr2 cw1
+drawCell Snake1 = withAttr snakeAttr1 cw
+drawCell Snake2 = withAttr snakeAttr2 cw
+drawCell Food   = withAttr foodAttr cw
+drawCell Freezer  = withAttr freezerAttr cw
+drawCell Empty  = withAttr emptyAttr cw
 
 cw :: Widget Name
 cw = str "  "
@@ -228,6 +236,8 @@ theMap :: AttrMap
 theMap = attrMap V.defAttr
   [ (snakeAttr1, V.blue `on` V.blue)
   , (snakeAttr2, V.red `on` V.red)
+  , (snakeheadAttr1, V.blue `on` V.blue)
+  , (snakeheadAttr2, V.red `on` V.red)
   , (foodAttr, V.green `on` V.green)
   , (freezerAttr, V.yellow `on` V.yellow)
   , (gameOverAttr, fg V.red `V.withStyle` V.bold)
@@ -236,9 +246,11 @@ theMap = attrMap V.defAttr
 gameOverAttr :: AttrName
 gameOverAttr = attrName "gameOver"
 
-snakeAttr1, snakeAttr2, foodAttr, emptyAttr, freezerAttr :: AttrName
+snakeAttr1, snakeAttr2, foodAttr, emptyAttr, freezerAttr, snakeheadAttr1, snakeheadAttr2 :: AttrName
 snakeAttr1 = attrName "snakeAttr1"
 snakeAttr2 = attrName "snakeAttr2"
+snakeheadAttr1 = attrName "snakeheadAttr1"
+snakeheadAttr2 = attrName "snakeheadAttr2"
 foodAttr  = attrName "foodAttr"
 freezerAttr = attrName "freezerAttr"
 emptyAttr = attrName "emptyAttr"
