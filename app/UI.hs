@@ -207,8 +207,8 @@ drawTip g = if g ^. p2mode then
     & withBorderStyle unicodeBold
     & setAvailableSize (100, 50)
   else
-    [ " BLUE DOT IS PLAYER"
-    , " GREEN DOT IS FOOD"
+    [ "BLUE DOT IS PLAYER"
+    , "GREEN DOT IS FOOD"
     ]
     & unlines
     & str
