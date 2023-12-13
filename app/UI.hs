@@ -10,22 +10,24 @@ import Data.Maybe()
 import Snake
 
 import Brick
-  ( App(..), AttrMap, BrickEvent(..), EventM, Widget
-  , customMain, neverShowCursor
-  , halt
-  , hLimit, vBox, hBox
-  , padRight, padTop, padAll, Padding(..)
-  , withBorderStyle
-  , str
-  , attrMap, withAttr, emptyWidget, AttrName, on, fg
-  , (<+>)
-  )
+  -- ( App(..), AttrMap, BrickEvent(..), EventM, Widget
+  -- , customMain, neverShowCursor
+  -- , halt
+  -- , hLimit, vBox, hBox
+  -- , padRight, padTop, padAll, Padding(..)
+  -- , withBorderStyle
+  -- , str
+  -- , attrMap, withAttr, emptyWidget, AttrName, on, fg
+  -- , (<+>)
+  -- )
 import Brick.AttrMap (attrName)
 import Brick.BChan (newBChan, writeBChan)
+import Brick.Widgets.Border (border, borderWithLabel, hBorderWithLabel, vBorder)
+import Brick.Widgets.Border.Style (unicodeBold)
 import qualified Brick.Widgets.Border as B
 import qualified Brick.Widgets.Border.Style as BS
 import qualified Brick.Widgets.Center as C
-import Control.Lens ((^.))
+import Control.Lens ((^.),(&))
 import qualified Graphics.Vty as V
 import Graphics.Vty.CrossPlatform (mkVty)
 import qualified Data.Sequence()
@@ -97,7 +99,7 @@ handleEvent _                                     = return ()
 
 drawUI :: Game -> [Widget Name]
 drawUI g =
-  [ C.center $ padRight (Pad 2) (drawStats g) <+> drawGrid g ]
+  [ C.center $ padRight (Pad 2) drawHelp <=> (drawStats g) <+> drawGrid g]
 
 drawStats :: Game -> Widget Name
 drawStats g = hLimit 11
@@ -137,6 +139,20 @@ drawCell Snake1 = withAttr snakeAttr1 cw
 drawCell Snake2 = withAttr snakeAttr2 cw
 drawCell Food  = withAttr foodAttr cw
 drawCell Empty = withAttr emptyAttr cw
+
+drawHelp :: Widget()
+drawHelp =
+  [ "Player1 Move: WASD"
+  , "Player2 Move: ↑←↓→"
+  , "Quit        : Q"
+  , "Restart     : R"
+  , "Pause       : P"
+  ]
+  & unlines
+  & str
+  & borderWithLabel (str " Help ")
+  & withBorderStyle unicodeBold
+  & setAvailableSize (100, 50)
 
 cw :: Widget Name
 cw = str "  "
