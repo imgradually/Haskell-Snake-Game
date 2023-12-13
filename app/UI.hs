@@ -8,7 +8,7 @@ import Control.Concurrent (threadDelay, forkIO)
 import Data.Maybe()
 
 import Snake
-import Start (start)
+import Start (start,appStartEvent)
 
 import Brick
   -- ( App(..), AttrMap, BrickEvent(..), EventM, Widget
@@ -25,6 +25,7 @@ import Brick.AttrMap (attrName)
 import Brick.BChan (newBChan, writeBChan)
 import Brick.Widgets.Border (border, borderWithLabel, hBorderWithLabel, vBorder)
 import Brick.Widgets.Border.Style (unicodeBold)
+import Brick.Widgets.Center
 import qualified Brick.Widgets.Border as B
 import qualified Brick.Widgets.Border.Style as BS
 import qualified Brick.Widgets.Center as C
@@ -97,13 +98,17 @@ handleEvent (VtyEvent (V.EvKey V.KEsc []))        = halt
 handleEvent (VtyEvent (V.EvKey (V.KChar 'p') [])) = modify pauseGame
 handleEvent (VtyEvent (V.EvKey (V.KChar '.') [])) = modify $ applyReverseEffect 1
 handleEvent (VtyEvent (V.EvKey (V.KChar 'g') [])) = modify $ applyReverseEffect 2
+-- handleEvent (VtyEvent (V.EvKey (V.KChar 'b') [])) = 
 handleEvent _                                     = return ()
 
 -- Drawing
 
 drawUI :: Game -> [Widget Name]
 drawUI g =
-  [ C.center $ padRight (Pad 2) (drawHelp g) <=> (drawStats g) <+> drawGrid g]
+  if g ^. p2mode then
+    [ C.center $ padRight (Pad 2)  ((drawHelp g) <=> padLeft (Pad 7) (drawStats g)) <+> drawGrid g]
+  else
+    [ C.center $ padRight (Pad 2)  ((drawHelp g) <=> padLeft (Pad 5) (drawStats g)) <+> drawGrid g]
 
 drawStats :: Game -> Widget Name
 drawStats g = hLimit 11
@@ -148,11 +153,13 @@ drawCell Empty  = withAttr emptyAttr cw
  
 drawHelp :: Game -> Widget()
 drawHelp g = if g ^. p2mode then
-    [ "Player1 Move: WASD"
-    , "Player2 Move: ↑←↓→"
-    , "Quit        : Q"
-    , "Restart     : R"
-    , "Pause       : P"
+    [ "Player1 Move    : ↑←↓→"
+    , "Player2 Move    : WASD"
+    , "Player1 Reverse : ."
+    , "Player2 Reverse : g"
+    , "Quit            : Q"
+    , "Restart         : R"
+    , "Pause           : P"
     ]
     & unlines
     & str
@@ -161,6 +168,7 @@ drawHelp g = if g ^. p2mode then
     & setAvailableSize (100, 50)
   else
     [ "Move        : ↑←↓→"
+    , "Reverse     : ."
     , "Quit        : Q"
     , "Restart     : R"
     , "Pause       : P"
