@@ -101,7 +101,7 @@ handleEvent _                                     = return ()
 
 drawUI :: Game -> [Widget Name]
 drawUI g =
-  [ C.center $ padRight (Pad 2) drawHelp <=> (drawStats g) <+> drawGrid g]
+  [ C.center $ padRight (Pad 2) (drawHelp g) <=> (drawStats g) <+> drawGrid g]
 
 drawStats :: Game -> Widget Name
 drawStats g = hLimit 11
@@ -143,20 +143,31 @@ drawCell Snake2 = withAttr snakeAttr2 cw
 drawCell Food   = withAttr foodAttr cw
 drawCell Freezer  = withAttr freezerAttr cw
 drawCell Empty  = withAttr emptyAttr cw
-
-drawHelp :: Widget()
-drawHelp =
-  [ "Player1 Move: WASD"
-  , "Player2 Move: ↑←↓→"
-  , "Quit        : Q"
-  , "Restart     : R"
-  , "Pause       : P"
-  ]
-  & unlines
-  & str
-  & borderWithLabel (str " Help ")
-  & withBorderStyle unicodeBold
-  & setAvailableSize (100, 50)
+ 
+drawHelp :: Game -> Widget()
+drawHelp g = if g ^. p2mode then
+    [ "Player1 Move: WASD"
+    , "Player2 Move: ↑←↓→"
+    , "Quit        : Q"
+    , "Restart     : R"
+    , "Pause       : P"
+    ]
+    & unlines
+    & str
+    & borderWithLabel (str " Help ")
+    & withBorderStyle unicodeBold
+    & setAvailableSize (100, 50)
+  else
+    [ "Move        : ↑←↓→"
+    , "Quit        : Q"
+    , "Restart     : R"
+    , "Pause       : P"
+    ]
+    & unlines
+    & str
+    & borderWithLabel (str " Help ")
+    & withBorderStyle unicodeBold
+    & setAvailableSize (100, 50)
 
 cw :: Widget Name
 cw = str "  "
