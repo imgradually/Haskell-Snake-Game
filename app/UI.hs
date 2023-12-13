@@ -161,8 +161,8 @@ drawGrid g = withBorderStyle BS.unicodeBold
     cellAt c
       | c `elem` g ^. snake1 && False == g ^. dead1 && isItemFirst c (g ^. snake1) = SnakeHead1
       | c `elem` g ^. snake1 && False == g ^. dead1                                = Snake1
-      | c `elem` g ^. snake1 && False == g ^. dead1 && isItemFirst c (g ^. snake2) = SnakeHead2
-      | c `elem` g ^. snake1 && False == g ^. dead1                                = Snake2
+      | c `elem` g ^. snake2 && False == g ^. dead2 && isItemFirst c (g ^. snake2) = SnakeHead2
+      | c `elem` g ^. snake2 && False == g ^. dead2                                = Snake2
       | c == g ^. food                                                             = Food
       | c == g ^. freezer && False == g ^. dead1 && False == g ^. dead2            = Freezer
       | otherwise                                                                  = Empty
