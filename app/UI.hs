@@ -93,6 +93,8 @@ handleEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = do {g <- get; g' <- liftIO $
 handleEvent (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt
 handleEvent (VtyEvent (V.EvKey V.KEsc []))        = halt
 handleEvent (VtyEvent (V.EvKey (V.KChar 'p') [])) = modify pauseGame
+handleEvent (VtyEvent (V.EvKey (V.KChar '.') [])) = modify $ applyReverseEffect 1
+handleEvent (VtyEvent (V.EvKey (V.KChar 'g') [])) = modify $ applyReverseEffect 2
 handleEvent _                                     = return ()
 
 -- Drawing

@@ -10,8 +10,7 @@ module Snake
   , food, dead, winner, score1, score2, snake1, snake2, freezer, dead1, dead2, p2mode
   , height, width
   , pauseGame
-  , applyDeadEffect
-  -- , applyFreezeEffect
+  , applyReverseEffect
   ) where
 
 import Control.Applicative ((<|>))
@@ -298,8 +297,8 @@ initGame p2 = do
     fromList . randomRs (V2 0 0, V2 (width - 1) (height - 1)) <$> newStdGen
   let x1 = width `div` 2
       y1 = height `div` 4 
-      x2 = width `div` 2
-      y2 = height `div` 4 * 3
+      x2 = if p2 then width `div` 2 else width
+      y2 = if p2 then height `div` 4 * 3 else height
       g  = Game
         { _snake1  = S.singleton (V2 x1 y1)
         , _score1  = 0
@@ -312,7 +311,7 @@ initGame p2 = do
         , _locked2 = False        
         , _dead2   = not p2
         , _food    = f
-        , _freezer = if p2 then (V2 width height) else ff
+        , _freezer = if p2 then ff else (V2 width height)
         , _foods   = fs
         , _freeze1  = 0
         , _freeze2  = 0
@@ -326,11 +325,35 @@ initGame p2 = do
 fromList :: [a] -> Stream a
 fromList = foldr (:|) (error "Streams must be infinite")
 
--- applyFreezeEffect :: Int -> Game -> Game
--- applyFreezeEffect 1 g = g & freeze1 .~ 10
--- applyFreezeEffect 2 g = g & freeze2 .~ 10
+getDifference :: Snake -> Maybe Coord
+getDifference snake
+  | S.length snake >= 2 = do
+      let lastTwo = S.drop (S.length snake - 2) snake
+      let firstCoord = S.index lastTwo 0
+      let secondCoord = S.index lastTwo 1
+      return (secondCoord - firstCoord)
+  | otherwise = Nothing
 
-applyDeadEffect :: Int -> Game -> Game
-applyDeadEffect 1 g = g & dead1 .~ True
-applyDeadEffect 2 g = g & dead2 .~ True
+snakeDirection :: Direction -> Snake -> Direction
+snakeDirection d snake
+  | Just diff <- getDifference snake
+  , diff == (V2 0 1)  = North
+  | Just diff <- getDifference snake
+  , diff == (V2 1 0)  = East
+  | Just diff <- getDifference snake
+  , diff == (V2 0 (-1)) = South
+  | Just diff <- getDifference snake
+  , diff == (V2 (-1) 0) = West
+  | otherwise               = d
 
+reverseDirection :: Direction -> Direction
+reverseDirection d
+  | d == North = South
+  | d == South = North
+  | d == East  = West
+  | d == West  = East
+  | otherwise  = error "Unknown reverse direction"
+
+applyReverseEffect :: Int -> Game -> Game
+applyReverseEffect 1 g = g & snake1 %~ S.reverse & dir1 .~ (snakeDirection (reverseDirection $ g ^. dir1) (g ^. snake1))
+applyReverseEffect 2 g = g & snake2 %~ S.reverse & dir2 .~ (snakeDirection (reverseDirection $ g ^. dir2) (g ^. snake2))
