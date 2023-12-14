@@ -106,6 +106,8 @@ die = do
 bothdie :: MaybeT (State Game) ()
 bothdie = do
   MaybeT $ guard . not <$> orM [use dead1, use dead2]
+  MaybeT $ guard . (== 0) <$> use freeze1
+  MaybeT $ guard . (== 0) <$> use freeze2
   MaybeT . fmap guard $ do
     snakeCrash1 <- get
       >>=
