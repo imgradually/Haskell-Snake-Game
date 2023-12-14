@@ -7,7 +7,7 @@ module Snake
   , turn1, turn2
   , Game(..)
   , Direction(..)
-  , food, dead, winner, score1, score2, snake1, snake2, freezer, dead1, dead2, p2mode
+  , food, dead, winner, score1, score2, snake1, snake2, freezer, dead1, dead2, p2mode, paused
   , height, width
   , pauseGame
   , applyReverseEffect
@@ -88,7 +88,7 @@ step :: Game -> Game
 step s = flip execState s . runMaybeT $ do
 
   -- Make sure the game isn't paused or over
-  MaybeT $ guard . not <$> orM [use paused, andM [use dead1, use dead2] ]
+  MaybeT $ guard . not <$> orM [use paused, use dead]
 
   -- Unlock from last directional turn
   MaybeT . fmap Just $ locked1 .= False
@@ -100,7 +100,7 @@ step s = flip execState s . runMaybeT $ do
 -- | Possibly die if next head position is in snake
 die :: MaybeT (State Game) ()
 die = do
-  MaybeT $ guard . not <$> andM [use dead1, use dead2]
+  MaybeT $ guard . not <$> use dead
   bothdie <|> die1 <|> die2
 
 bothdie :: MaybeT (State Game) ()
@@ -129,14 +129,15 @@ bothdie = do
   s1 <- use score1
   s2 <- use score2
   if s1 > s2
-    then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER blue"
+    then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER 1"
     else if s2 > s1
-      then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER red"
+      then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER 2"
       else  MaybeT . fmap Just $ winner .= "GAME OVER\nDRAW"
     
 die1 :: MaybeT (State Game) ()
 die1 = do
   MaybeT $ guard . not <$> use dead1
+  MaybeT $ guard . (== 0) <$> use freeze1
   MaybeT . fmap guard $ do
     snakeCrash1 <- get
       >>=
@@ -162,14 +163,15 @@ die1 = do
       s1 <- use score1
       s2 <- use score2
       if s1 > s2
-        then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER blue"
+        then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER 1"
         else if s2 > s1
-          then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER red"
+          then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER 2"
           else  MaybeT . fmap Just $ winner .= "GAME OVER\nDRAW"
 
 die2 :: MaybeT (State Game) ()
 die2 = do
   MaybeT $ guard . not <$> use dead2
+  MaybeT $ guard . (== 0) <$> use freeze2
   MaybeT . fmap guard $ do
     snakeCrash2 <- get
       >>=
@@ -189,9 +191,9 @@ die2 = do
   s1 <- use score1
   s2 <- use score2
   if s1 > s2
-    then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER blue"
+    then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER 1"
     else if s2 > s1
-      then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER red"
+      then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER 2"
       else  MaybeT . fmap Just $ winner .= "GAME OVER\nDRAW"
 
 -- | Possibly eat food if next head position is food
@@ -265,7 +267,6 @@ nextFoodAndFreezer = do
 -- | Move snake along in a marquee fashion
 move :: Game -> Game
 move g = move1 $ move2 g
-move _                             = error "Snakes can't be empty!"
 
 move1 :: Game -> Game
 move1 g@Game { _snake1 = (s1 :|> _), _freeze1 = f1, _dead1 = d1} =
@@ -291,7 +292,8 @@ pauseGame g = g & if g ^. paused then paused .~ False else paused .~ True
 
 -- | Get next head position of the snake
 nextHead1 :: Game -> Coord
-nextHead1 Game { _dir1 = d, _snake1 = (a :<| _) }
+nextHead1 Game { _dir1 = d, _snake1 = (a :<| _) , _freeze1 = f1}
+  | f1 > 0     = a
   | d == North = a & _y %~ (\y -> (y + 1) `mod` height)
   | d == South = a & _y %~ (\y -> (y - 1) `mod` height)
   | d == East  = a & _x %~ (\x -> (x + 1) `mod` width)
@@ -299,7 +301,8 @@ nextHead1 Game { _dir1 = d, _snake1 = (a :<| _) }
 nextHead1 _ = error "Snakes can't be empty!"
 
 nextHead2 :: Game -> Coord
-nextHead2 Game { _dir2 = d, _snake2 = (a :<| _) }
+nextHead2 Game { _dir2 = d, _snake2 = (a :<| _) , _freeze2 = f2}
+  | f2 > 0     = a
   | d == North = a & _y %~ (\y -> (y + 1) `mod` height)
   | d == South = a & _y %~ (\y -> (y - 1) `mod` height)
   | d == East  = a & _x %~ (\x -> (x + 1) `mod` width)

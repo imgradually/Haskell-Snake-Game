@@ -120,14 +120,14 @@ drawUI g =
 drawStats :: Game -> Widget Name
 drawStats g = if g ^. p2mode then 
   hLimit 11
-  $ vBox [ drawScore (g ^. score1) "Score1"
-         , drawScore (g ^. score2) "Score2"
-         , padTop (Pad 2) $ drawGameOver (g ^. dead) (g ^. winner)
+  $ vBox [ drawScore (g ^. score1) "p1Score"
+         , drawScore (g ^. score2) "p2Score"
+         , padTop (Pad 2) $ drawGameOver (g ^. dead) (g ^. paused) (g ^. winner)
          ]
   else
     hLimit 11
   $ vBox [ drawScore (g ^. score1) "Score"
-         , padTop (Pad 2) $ drawGameOver (g ^. dead) (g ^. winner)
+         , padTop (Pad 2) $ drawGameOver (g ^. dead) (g ^. paused) (g ^. winner)
          ]
 
 
@@ -138,11 +138,13 @@ drawScore n s = withBorderStyle BS.unicodeRounded
   $ padAll 1
   $ str $ show n
 
-drawGameOver :: Bool -> String -> Widget Name
-drawGameOver isDead winnerStr =
+drawGameOver :: Bool -> Bool -> String -> Widget Name
+drawGameOver isDead isPause winnerStr =
   if isDead
      then withAttr gameOverAttr $ C.hCenter $ str $ winnerStr
-     else emptyWidget
+     else if isPause
+      then withAttr gameOverAttr $ C.hCenter $ str $ "GAME PAUSED\nPRESS A KEY\nTO CONTINUE"
+      else emptyWidget
 
 drawGrid :: Game -> Widget Name
 drawGrid g = withBorderStyle BS.unicodeBold
