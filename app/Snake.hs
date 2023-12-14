@@ -101,8 +101,39 @@ step s = flip execState s . runMaybeT $ do
 die :: MaybeT (State Game) ()
 die = do
   MaybeT $ guard . not <$> andM [use dead1, use dead2]
-  die1 <|> die2
+  bothdie <|> die1 <|> die2
 
+bothdie :: MaybeT (State Game) ()
+bothdie = do
+  MaybeT $ guard . not <$> orM [use dead1, use dead2]
+  MaybeT . fmap guard $ do
+    snakeCrash1 <- get
+      >>=
+        (\ headValue
+          -> (||) <$> (elem headValue <$> use snake1)
+                <*> (elem headValue <$> use snake2))
+          . nextHead1
+    wallCrash1  <- checkNextHeadOOB1 <$> get
+    snakeCrash2 <- get
+      >>=
+        (\ headValue
+          -> (||) <$> (elem headValue <$> use snake1)
+                <*> (elem headValue <$> use snake2))
+          . nextHead2
+    wallCrash2  <- checkNextHeadOOB2 <$> get
+    let snake1die = (snakeCrash1 ||  wallCrash1)
+    let snake2die = (snakeCrash2 ||  wallCrash2)
+    sameNext <- (==) <$> (nextHead1 <$> get) <*> (nextHead2 <$> get)
+    return $ (snake1die && snake2die) || sameNext
+  MaybeT . fmap Just $ dead .= True
+  s1 <- use score1
+  s2 <- use score2
+  if s1 > s2
+    then MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER blue"
+    else if s2 > s1
+      then  MaybeT . fmap Just $ winner .= "GAME OVER\nWINNER is\nPLAYER red"
+      else  MaybeT . fmap Just $ winner .= "GAME OVER\nDRAW"
+    
 die1 :: MaybeT (State Game) ()
 die1 = do
   MaybeT $ guard . not <$> use dead1
@@ -150,9 +181,9 @@ die2 = do
     return (snakeCrash2 ||  wallCrash2)
   
   MaybeT . fmap Just $ dead2 .= True
-  MaybeT . fmap Just $ dead .= True
   MaybeT . fmap Just $ freezer .= (V2 width height)
   MaybeT . fmap Just $ snake2 .= S.singleton (V2 width height)
+
   MaybeT $ guard <$> use dead1
   MaybeT . fmap Just $ dead .= True
   s1 <- use score1
@@ -315,7 +346,7 @@ initGame p2 = do
   (f :| (ff :| fs)) <-
     fromList . randomRs (V2 0 0, V2 (width - 1) (height - 1)) <$> newStdGen
   let x1 = width `div` 2
-      y1 = height `div` 4 
+      y1 = height `div` 4 - 1
       x2 = if p2 then width `div` 2 else width
       y2 = if p2 then height `div` 4 * 3 else height
       g  = Game
