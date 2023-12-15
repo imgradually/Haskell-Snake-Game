@@ -193,8 +193,8 @@ drawHelp g = if g ^. p2mode then
 
 drawTip :: Game -> Widget()
 drawTip g = if g ^. p2mode then
-      [ "RED DOT IS PLAYER 1"
-      , "BLUE DOT IS PLAYER 2"
+      [ "BLUE DOT IS PLAYER 1"
+      , "RED DOT IS PLAYER 2"
       , "YELLOW DOT IS FREEZER "
       , "GREEN DOT IS FOOD"
     ]
