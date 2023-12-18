@@ -26,15 +26,7 @@ cd Haskell-Snake-Game
 cabal run Haskell-Snake-Game
 ```
 
-## Modification from example snake project by samtay
- - mkVty: dependencies should include vty-crossplatform, need to add `import Graphics.Vty.CrossPlatform (mkVty)` in `UI.hs`
- - `Next` and `continue` deprecated after [brick 1.0]: changes in `handleEvent`, should add `import Control.Monad.State.Class (modify)` in `UI.hs`
- - AttrName: need `attrName` to convert String to AttrName, should add `import Brick.AttrMap (attrName)` in `UI.hs`
- - Other minor changes: should add parantheses after `return` at around line 56 in `UI.hs`
-
- - TO BE FIXED: No dead currently, i.e., the game will never stop unless you press `q`
-
-### Milestone 1: Proposal
+## Milestone 1: Proposal
 In this project, We decided to reproduce the classic snake game, with the primary aim to create a two-player gaming experience within the confines of the command line interface.
 These are the game functionality we will include in our project
 1. Starting Point:
@@ -52,7 +44,7 @@ The player must avoid having the collision with itself, the components body, or 
 7. Scorekeeping:
 Points are awarded for each piece of food eaten. The Player with the higher score at the end of the game wins.
 
-### Milestone 2: Updates
+## Milestone 2: Updates
 
 #### Key components of our application
 - **Game State:** The **`Game`** type represents the state of the Snake game, including the snake's position, direction, score, etc.
@@ -62,14 +54,20 @@ Points are awarded for each piece of food eaten. The Player with the higher scor
 - **Game Logic:** The game logic is encapsulated in the **`step`** and **`turn`** functions, which handle the progression of the game state based on ticks and user input.
 - **Brick App Definition:** The **`app`** definition configures the Brick application, specifying the drawing, event handling, cursor behavior, and attribute mapping.
 - **Attributes and Styles:** The **`theMap`** defines attribute mappings for different elements, such as the snake, food, and game over message. These attributes are used in rendering to style the elements.
-#### Challenges and Solutions
-
-- This is our first time program in Haskell with Brick library. Thus, we started with some online tutorial resources such as ***Introduction to Brick*** by Sam Tay
-
-- Some example code are outdated or deprecated so we need to make it compatible to current version.
-
-    - **`Next`** and **`continue`** deprecated after [brick 1.0] so we use **`modify`** instead
 
 #### Do we expect to meet our goals until the deadline?
 
 - Yes
+
+## Reference and Extension
+
+### Referenced project
+https://github.com/samtay/snake.git
+
+### Feature Extension
+Brick version compatibility : `next` and `continue` are not supported in current version of brick library. Many other features need to be fixed as well, such as handling the collision to the border and the pause (restart) function when `p` (`r`) is pressed.
+Second player (snake) : Extend the game from a single-player game to a double-player game. This involves creating a second snake and defining a new conditions for game-over in this multiplayer setting.
+Start page : Insert a new **brick App** at the beginning of `main` to ask users to choose whether they are going to play in a single-player or double-player format.
+Freezer : Create a new food-like object such that one can freeze its opponent for a while. Appears only in double-player mode.
+Reverse : Allow user to press `g` or `.` to switch its head and tail.
+Help : Show help window aside when playing.
