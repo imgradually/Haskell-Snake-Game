@@ -65,9 +65,9 @@ Points are awarded for each piece of food eaten. The Player with the higher scor
 https://github.com/samtay/snake.git
 
 ### Feature Extension
-Brick version compatibility : `next` and `continue` are not supported in current version of brick library. Many other features need to be fixed as well, such as handling the collision to the border and the pause (restart) function when `p` (`r`) is pressed.
-Second player (snake) : Extend the game from a single-player game to a double-player game. This involves creating a second snake and defining a new conditions for game-over in this multiplayer setting.
-Start page : Insert a new **brick App** at the beginning of `main` to ask users to choose whether they are going to play in a single-player or double-player format.
-Freezer : Create a new food-like object such that one can freeze its opponent for a while. Appears only in double-player mode.
-Reverse : Allow user to press `g` or `.` to switch its head and tail.
-Help : Show help window aside when playing.
+- **Brick version compatibility** : `next` and `continue` are not supported in current version of brick library. Many other features need to be fixed as well, such as handling the collision to the border and the pause (restart) function when `p` (`r`) is pressed.
+- **Second player (snake)** : Extend the game from a single-player game to a double-player game. This involves creating a second snake and defining a new conditions for game-over in this multiplayer setting.
+- **Start page** : Insert a new **brick App** at the beginning of `main` to ask users to choose whether they are going to play in a single-player or double-player format.
+- **Freezer** : Create a new food-like object such that one can freeze its opponent for a while. Appears only in double-player mode.
+- **Reverse** : Allow user to press `g` or `.` to switch its head and tail.
+- **Other UI-related change** : Show help window aside when playing. Add snakes' eyes.
