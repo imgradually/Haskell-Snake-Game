@@ -68,6 +68,8 @@ https://github.com/samtay/snake.git
 - **Brick version compatibility** : `next` and `continue` are not supported in current version of brick library. Many other features need to be fixed as well, such as handling the collision to the border and the pause (restart) function when `p` (`r`) is pressed.
 - **Second player (snake)** : Extend the game from a single-player game to a double-player game. This involves creating a second snake and defining a new conditions for game-over in this multiplayer setting.
 - **Start page** : Insert a new **brick App** at the beginning of `main` to ask users to choose whether they are going to play in a single-player or double-player format.
-- **Freezer** : Create a new food-like object such that one can freeze its opponent for a while. Appears only in double-player mode.
+- **Freezer** : Create a new food-like object such that one can freeze its opponent for a while. Appears only in double-player mode. The snake that is freezed cannot die.
 - **Reverse** : Allow user to press `g` or `.` to switch its head and tail.
-- **Other UI-related change** : Show help window aside when playing. Add snakes' eyes.
+- **Changes in the decision of winning party** : For double player mode, the system is designed to judge which player has won by the scores they get. We also introduced the draw result in case the scores are the same. And the **Gameover** box would show the result.
+- **Changes in game playing** : For double player mode, because the results are decided by the scores, the game would still conitnue if one party dies until both parties are dead to accomodate the changes. We also noticed that because there are two snakes, there would be collision to each other, so when any snake crashes into another's body part, it would die. When these two snakes collided head to head, there would be a draw if the score is the same and whoever has the higher score secures the game.
+- **UI changes** : Show help window and tip window aside when playing. These two windows are customized for different play modes. Change the snakes' heads attribute to different patterns so that the movements can be more easily recognized. 
